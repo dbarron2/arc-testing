@@ -1,15 +1,85 @@
-"""Planck spectral radiance using Astropy's BlackBody model."""
+"""
+Planck spectral radiance.
+
+Two implementations are provided:
+
+- ``planck_lambda`` / ``planck_nu``: from first principles, no imports, plain floats.
+- ``spectral_radiance`` / ``spectral_radiance_nu``: Astropy ``BlackBody``, unit-aware quantities.
+"""
 
 import astropy.units as u
 from astropy.modeling.models import BlackBody
 
-# Wavelength-based spectral radiance (B_lambda)
+# ---------------------------------------------------------------------------
+# From scratch (SI constants, no units)
+# ---------------------------------------------------------------------------
+
+# CODATA 2019
+H = 6.62607015e-34  # Planck constant [J·s]
+C = 299792458.0  # Speed of light [m/s]
+K_B = 1.380649e-23  # Boltzmann constant [J/K]
+_E = 2.718281828459045  # Euler's number
+
+
+def _expm1(x):
+    """exp(x) - 1 without importing math."""
+    return _E**x - 1.0
+
+
+def planck_lambda(wavelength, temperature):
+    """
+    Spectral radiance B_lambda(T, lambda) from Planck's law.
+
+    B_lambda = (2 h c^2 / lambda^5) / (exp(h c / (lambda k T)) - 1)
+
+    Parameters
+    ----------
+    wavelength : float
+        Wavelength in meters.
+    temperature : float
+        Temperature in kelvin.
+
+    Returns
+    -------
+    float
+        Spectral radiance in W / (m^3 * sr).
+    """
+    exponent = H * C / (wavelength * K_B * temperature)
+    return (2.0 * H * C**2 / wavelength**5) / _expm1(exponent)
+
+
+def planck_nu(frequency, temperature):
+    """
+    Spectral radiance B_nu(T, nu) from Planck's law.
+
+    B_nu = (2 h nu^3 / c^2) / (exp(h nu / (k T)) - 1)
+
+    Parameters
+    ----------
+    frequency : float
+        Frequency in hertz.
+    temperature : float
+        Temperature in kelvin.
+
+    Returns
+    -------
+    float
+        Spectral radiance in W / (m^2 * Hz * sr).
+    """
+    exponent = H * frequency / (K_B * temperature)
+    return (2.0 * H * frequency**3 / C**2) / _expm1(exponent)
+
+
+# ---------------------------------------------------------------------------
+# Astropy BlackBody (unit-aware)
+# ---------------------------------------------------------------------------
+
 _SLAM = u.erg / (u.cm**2 * u.s * u.AA * u.sr)
 
 
-def spectral_radiance(wavelength, temperature):
+def astropy_spectral_radiance(wavelength, temperature):
     """
-    Spectral radiance B_lambda(T, lambda) from Planck's law.
+    Spectral radiance B_lambda(T, lambda) via Astropy's BlackBody model.
 
     Parameters
     ----------
@@ -27,9 +97,9 @@ def spectral_radiance(wavelength, temperature):
     return bb(wavelength)
 
 
-def spectral_radiance_nu(frequency, temperature):
+def astropy_spectral_radiance_nu(frequency, temperature):
     """
-    Spectral radiance B_nu(T, nu) from Planck's law.
+    Spectral radiance B_nu(T, nu) via Astropy's BlackBody model.
 
     Parameters
     ----------
